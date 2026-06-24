@@ -1,0 +1,51 @@
+name: wechat_moment_img_convert
+description: 微信朋友圈图片编辑器 - 支持图片缩放、旋转、吸附对齐的画布编辑工具
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.0
+  flutter: ^3.27.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 状态管理
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # 图片选择
+  image_picker: ^1.1.2
+  photo_manager: ^3.6.4
+
+  # 图片处理
+  image: ^4.5.2
+
+  # 图片保存
+  image_gallery_saver_plus: ^3.0.5
+  gal: ^2.3.1
+
+  # 权限管理
+  permission_handler: ^11.3.1
+
+  # 路径管理
+  path_provider: ^2.1.5
+
+  # UI
+  google_fonts: ^6.2.1
+  flutter_svg: ^2.0.16
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  riverpod_generator: ^2.6.3
+  build_runner: ^2.4.14
+  custom_lint: ^0.7.2
+  riverpod_lint: ^2.6.3
+
+flutter:
+  uses-material-design: true
+
+  assets:
