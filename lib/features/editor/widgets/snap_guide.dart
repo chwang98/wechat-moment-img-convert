@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class SnapGuide extends StatelessWidget {
@@ -26,11 +25,6 @@ class _SnapGuidePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
     final dashPaint = Paint()
       ..color = color.withAlpha(80)
       ..strokeWidth = 1

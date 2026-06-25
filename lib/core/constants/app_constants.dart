@@ -2,8 +2,8 @@ class AppConstants {
   AppConstants._();
 
   /// 编辑画布默认分辨率
-  static const double canvasWidth = 1080;
-  static const double canvasHeight = 1920;
+  static const double canvasWidth = 2259;
+  static const double canvasHeight = 4524;
 
   /// 吸附阈值（像素）
   static const double snapThreshold = 10;

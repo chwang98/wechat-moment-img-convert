@@ -1,33 +1,41 @@
-import 'dart:ui';
+import 'package:flutter/material.dart';
 
 class EditorState {
   final String imagePath;
-  final double scale;
+  /// 原始图片像素尺寸
+  final Size? imageSize;
+  /// 用户在 InteractiveViewer 中的缩放倍率（1.0 = BoxFit.contain 状态）
+  final double userScale;
   final double rotation; // 弧度
-  final Offset position;
   final Size canvasSize;
+  final Color canvasBackgroundColor;
 
   const EditorState({
     required this.imagePath,
-    this.scale = 1.0,
+    this.imageSize,
+    this.userScale = 1.0,
     this.rotation = 0.0,
-    this.position = Offset.zero,
-    this.canvasSize = const Size(1080, 1920),
+    this.canvasSize = const Size(2259, 4524),
+    this.canvasBackgroundColor = Colors.black,
   });
 
   EditorState copyWith({
     String? imagePath,
-    double? scale,
+    Size? imageSize,
+    bool clearImageSize = false,
+    double? userScale,
     double? rotation,
-    Offset? position,
     Size? canvasSize,
+    Color? canvasBackgroundColor,
   }) {
     return EditorState(
       imagePath: imagePath ?? this.imagePath,
-      scale: scale ?? this.scale,
+      imageSize: clearImageSize ? null : (imageSize ?? this.imageSize),
+      userScale: userScale ?? this.userScale,
       rotation: rotation ?? this.rotation,
-      position: position ?? this.position,
       canvasSize: canvasSize ?? this.canvasSize,
+      canvasBackgroundColor:
+          canvasBackgroundColor ?? this.canvasBackgroundColor,
     );
   }
 }

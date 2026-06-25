@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
-import 'features/gallery/screens/gallery_screen.dart';
+import 'features/shell/main_shell.dart';
 
 class WechatMomentApp extends StatelessWidget {
   const WechatMomentApp({super.key});
@@ -13,7 +13,7 @@ class WechatMomentApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: const GalleryScreen(),
+      home: const MainShell(),
     );
   }
 }

@@ -1,102 +1,95 @@
 import 'dart:math';
-import 'dart:ui';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../models/editor_state.dart';
 
-/// 按 imagePath 区分的 editor provider 族
 final editorProvider =
     StateNotifierProvider.family<EditorNotifier, EditorState, String>(
-  (ref, imagePath) => EditorNotifier(imagePath),
+  (ref, imagePath) => EditorNotifier(imagePath, settingsRef: ref),
 );
 
 class EditorNotifier extends StateNotifier<EditorState> {
-  EditorNotifier(String imagePath, {Size? canvasSize})
+  EditorNotifier(String imagePath, {Ref? settingsRef})
       : super(EditorState(
           imagePath: imagePath,
-          canvasSize: canvasSize ??
-              const Size(AppConstants.canvasWidth,
-                  AppConstants.canvasHeight),
+          canvasSize: _getCanvasSize(settingsRef),
+          canvasBackgroundColor: _getCanvasBackgroundColor(settingsRef),
         ));
 
-  void updatePosition(Offset delta) {
-    final newPosition = state.position + delta;
-    final snapped = _applySnap(newPosition);
-    state = state.copyWith(position: snapped);
-  }
-
-  /// 吸附逻辑：自动吸附到画布中线
-  Offset _applySnap(Offset position) {
-    final canvas = state.canvasSize;
-    double x = position.dx;
-    double y = position.dy;
-
-    // 吸附到垂直中线
-    final centerX = canvas.width / 2;
-    if ((x - centerX).abs() < AppConstants.snapThreshold) {
-      x = centerX;
+  static Size _getCanvasSize(Ref? ref) {
+    if (ref != null) {
+      final settings = ref.read(settingsProvider);
+      return Size(
+        settings.canvasWidth.toDouble(),
+        settings.canvasHeight.toDouble(),
+      );
     }
+    return const Size(AppConstants.canvasWidth, AppConstants.canvasHeight);
+  }
 
-    // 吸附到水平中线
-    final centerY = canvas.height / 2;
-    if ((y - centerY).abs() < AppConstants.snapThreshold) {
-      y = centerY;
+  static Color _getCanvasBackgroundColor(Ref? ref) {
+    if (ref != null) {
+      return ref.read(settingsProvider).canvasBackgroundColor;
     }
-
-    return Offset(x, y);
+    return Colors.black;
   }
 
-  void updateScale(double newScale) {
-    final clamped = newScale.clamp(
-      AppConstants.minScale,
-      AppConstants.maxScale,
-    );
-    state = state.copyWith(scale: clamped);
+  /// 设置原始图片尺寸
+  void setImageSize(Size size) {
+    state = state.copyWith(imageSize: size);
   }
 
-  void rotate(double angle) {
-    final newRotation = state.rotation + angle;
-    state = state.copyWith(rotation: newRotation);
+  /// 从 InteractiveViewer 同步用户缩放
+  void syncUserScale(double scale) {
+    final clamped =
+        scale.clamp(AppConstants.minScale, AppConstants.maxScale);
+    state = state.copyWith(userScale: clamped);
   }
 
-  /// 以宽度铺满画布，高度自动计算
-  void fitToWidth(Size imageSize) {
-    if (imageSize.isEmpty) return;
+  /// 铺满宽度：在 contain 基础上进一步缩放到宽度填满
+  void fitToWidth() {
+    final imgSize = state.imageSize;
+    if (imgSize == null || imgSize.isEmpty) return;
 
-    final canvasWidth = state.canvasSize.width;
-    final scale = canvasWidth / imageSize.width;
-    final scaledHeight = imageSize.height * scale;
-    final centerX = state.canvasSize.width / 2;
-    final centerY = state.canvasSize.height / 2;
+    final canvasW = state.canvasSize.width;
+    final canvasH = state.canvasSize.height;
+    final containScale =
+        (imgSize.width / imgSize.height > canvasW / canvasH)
+            ? canvasW / imgSize.width
+            : canvasH / imgSize.height;
+    if (containScale == 0) return;
 
-    state = state.copyWith(
-      scale: scale,
-      position: Offset(centerX, centerY - scaledHeight / 2),
-    );
+    // 宽度填满所需的 InteractiveViewer 倍率
+    final fillWidthScale = canvasW / (imgSize.width * containScale);
+    state = state.copyWith(userScale: fillWidthScale.clamp(
+        AppConstants.minScale, AppConstants.maxScale));
   }
 
-  /// 旋转后以宽度铺满画布
-  void rotateAndFitToWidth(Size imageSize) {
-    // 旋转后宽高互换
-    final rotatedSize = Size(imageSize.height, imageSize.width);
-    final canvasWidth = state.canvasSize.width;
-    final scale = canvasWidth / rotatedSize.width;
-    final scaledHeight = rotatedSize.height * scale;
-    final centerX = state.canvasSize.width / 2;
-    final centerY = state.canvasSize.height / 2;
+  /// 旋转后铺满宽度
+  void rotateAndFitToWidth() {
+    final imgSize = state.imageSize;
+    if (imgSize == null || imgSize.isEmpty) return;
 
+    final rotated = Size(imgSize.height, imgSize.width);
+    final canvasW = state.canvasSize.width;
+    final canvasH = state.canvasSize.height;
+    final containScale =
+        (rotated.width / rotated.height > canvasW / canvasH)
+            ? canvasW / rotated.width
+            : canvasH / rotated.height;
+    if (containScale == 0) return;
+
+    final fillWidthScale = canvasW / (rotated.width * containScale);
     state = state.copyWith(
       rotation: state.rotation + pi / 2,
-      scale: scale,
-      position: Offset(centerX, centerY - scaledHeight / 2),
+      userScale: fillWidthScale.clamp(
+          AppConstants.minScale, AppConstants.maxScale),
     );
   }
 
   void resetTransform() {
-    state = state.copyWith(
-      scale: 1.0,
-      rotation: 0.0,
-      position: Offset.zero,
-    );
+    state = state.copyWith(userScale: 1.0, rotation: 0.0);
   }
 }

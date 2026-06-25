@@ -1,11 +1,10 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/constants/app_constants.dart';
 import '../providers/editor_provider.dart';
 import '../widgets/editor_canvas.dart';
 import '../widgets/editor_toolbar.dart';
+import '../../../shared/utils/image_saver.dart';
 
 class EditorScreen extends ConsumerStatefulWidget {
   final String imagePath;
@@ -17,7 +16,7 @@ class EditorScreen extends ConsumerStatefulWidget {
 }
 
 class _EditorScreenState extends ConsumerState<EditorScreen> {
-  Size? _imageSize;
+  bool _isImageReady = false;
 
   @override
   void initState() {
@@ -31,27 +30,60 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       final bytes = await file.readAsBytes();
       final decoded = await decodeImageFromList(bytes);
       if (mounted) {
-        setState(() {
-          _imageSize = Size(
-            decoded.width.toDouble(),
-            decoded.height.toDouble(),
-          );
-        });
+        final size = Size(
+          decoded.width.toDouble(),
+          decoded.height.toDouble(),
+        );
+        ref
+            .read(editorProvider(widget.imagePath).notifier)
+            .setImageSize(size);
+        setState(() => _isImageReady = true);
       }
     }
   }
 
   void _onFitToWidth() {
-    if (_imageSize != null) {
-      ref.read(editorProvider(widget.imagePath).notifier).fitToWidth(_imageSize!);
-    }
+    ref.read(editorProvider(widget.imagePath).notifier).fitToWidth();
   }
 
   void _onRotate90() {
-    if (_imageSize != null) {
-      ref
-          .read(editorProvider(widget.imagePath).notifier)
-          .rotateAndFitToWidth(_imageSize!);
+    ref
+        .read(editorProvider(widget.imagePath).notifier)
+        .rotateAndFitToWidth();
+  }
+
+  Future<void> _onSave() async {
+    final state = ref.read(editorProvider(widget.imagePath));
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+
+    // 等待对话框渲染
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    try {
+      if (!mounted) return;
+      await ImageSaver.saveEditedImage(
+        sourcePath: state.imagePath,
+        imageSize: state.imageSize,
+        canvasSize: state.canvasSize,
+        userScale: state.userScale,
+        rotation: state.rotation,
+        backgroundColor: state.canvasBackgroundColor,
+        context: context,
+      );
+    } finally {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -63,6 +95,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         title: const Text('编辑图片'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.save),
+            tooltip: '保存',
+            onPressed: _onSave,
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: '重置',
             onPressed: () {
@@ -73,17 +110,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: EditorCanvas(imagePath: widget.imagePath),
-          ),
-          EditorToolbar(
-            onFitToWidth: _onFitToWidth,
-            onRotate90: _onRotate90,
-          ),
-        ],
-      ),
+      body: _isImageReady
+          ? Column(
+              children: [
+                Expanded(
+                  child: EditorCanvas(imagePath: widget.imagePath),
+                ),
+                EditorToolbar(
+                  onFitToWidth: _onFitToWidth,
+                  onRotate90: _onRotate90,
+                ),
+              ],
+            )
+          : const Center(child: CircularProgressIndicator()),
     );
   }
 }
