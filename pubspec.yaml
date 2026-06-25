@@ -23,7 +23,7 @@ dependencies:
   image: ^4.5.2
 
   # 图片保存
-  image_gallery_saver_plus: ^3.0.5
+  image_gallery_saver_plus: ^5.0.0
   gal: ^2.3.1
 
   # 权限管理

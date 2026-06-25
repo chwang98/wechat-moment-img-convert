@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 
@@ -31,7 +32,7 @@ class ImageGrid extends StatelessWidget {
   }
 }
 
-class _ImageThumbnail extends StatelessWidget {
+class _ImageThumbnail extends StatefulWidget {
   final AssetEntity asset;
   final VoidCallback onTap;
 
@@ -41,24 +42,48 @@ class _ImageThumbnail extends StatelessWidget {
   });
 
   @override
+  State<_ImageThumbnail> createState() => _ImageThumbnailState();
+}
+
+class _ImageThumbnailState extends State<_ImageThumbnail> {
+  Uint8List? _thumbnailData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThumbnail();
+  }
+
+  Future<void> _loadThumbnail() async {
+    final data = await widget.asset.thumbnailDataWithSize(
+      const ThumbnailSize.square(300),
+    );
+    if (mounted) {
+      setState(() => _thumbnailData = data);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(4),
-        child: AssetEntityImage(
-          asset,
-          isOriginal: false,
-          thumbnailSize: const ThumbnailSize.square(300),
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: const Icon(Icons.broken_image_outlined),
-            );
-          },
-        ),
+        child: _thumbnailData != null
+            ? Image.memory(
+                _thumbnailData!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _errorWidget(context),
+              )
+            : _errorWidget(context),
       ),
+    );
+  }
+
+  Widget _errorWidget(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: const Icon(Icons.broken_image_outlined),
     );
   }
 }
